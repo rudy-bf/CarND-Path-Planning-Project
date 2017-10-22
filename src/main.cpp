@@ -8,6 +8,7 @@
 #include "Eigen-3.3/Eigen/Core"
 #include "Eigen-3.3/Eigen/QR"
 #include "json.hpp"
+#include "spline.h"
 
 using namespace std;
 
@@ -147,9 +148,9 @@ vector<double> getXY(double s, double d, const vector<double> &maps_s, const vec
 	int wp2 = (prev_wp+1)%maps_x.size();
 
 	double heading = atan2((maps_y[wp2]-maps_y[prev_wp]),(maps_x[wp2]-maps_x[prev_wp]));
+	
 	// the x,y,s along the segment
 	double seg_s = (s-maps_s[prev_wp]);
-
 	double seg_x = maps_x[prev_wp]+seg_s*cos(heading);
 	double seg_y = maps_y[prev_wp]+seg_s*sin(heading);
 
@@ -243,16 +244,24 @@ int main() {
           	vector<double> next_y_vals;
  
 			// TODO: define a path made up of (x,y) points that the car will visit sequentially every .02 seconds
-			// 1. Define next_x_vals & next_y_vals  
-          	msgJson["next_x"] = next_x_vals;
-			msgJson["next_y"] = next_y_vals;
-			  
-			double dist_inc = 0.5 // distance increment
+			// 1. Define next_x_vals & next_y_vals
+
+			double dist_inc = 0.3; // distance increment
 			for (int i = 0; i < 50; i++) { // 50 for 50 mph
-				
-				next_x_vals.push_back( car_x + (dist_inc * i) * cos(deg2rad(car_yaw)) )
-				next_y_vals.push_back( car_y + (dist_inc * i) * sin(deg2rad(car_yaw)) )
+				// next_x --> step foward another distance incremenet each time
+				double next_s = car_s + (i + 1) * dist_inc;
+				// 4 m per lane, middle lane is 1.5 away from double yllw line
+				// 4 * 1.5 = 6
+				double next_d = 6;
+				vector<double> xy = getXY(next_s, next_d, map_waypoints_s, map_waypoints_x, map_waypoints_y);
+				// WORKS! Staying in it's lane but hitting car from behind, etc.
+				// Need to smooth the path!!
+				next_x_vals.push_back( xy[0]);
+				next_y_vals.push_back( xy[1] );
 			}
+
+			msgJson["next_x"] = next_x_vals;
+			msgJson["next_y"] = next_y_vals;
 
           	auto msg = "42[\"control\","+ msgJson.dump()+"]";
 
