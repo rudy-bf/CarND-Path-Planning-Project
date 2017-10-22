@@ -248,9 +248,9 @@ int main() {
 				next_y_vals.push_back(previous_path_y[i]);
 			}
 
-			if (path_size === 0) {
+			if (path_size == 0) {
 				pos_x = car_x;
-				pox_y = car_y;
+				pos_y = car_y;
 				angle = deg2rad(car_yaw);
 			} else {
 				pos_x = previous_path_x[path_size - 1];
@@ -261,7 +261,7 @@ int main() {
 				angle = atan2(pos_y - pos_y2, pos_x - pos_x2);
 			}
 
-			double dist_inc - 0.5;
+			double dist_inc = 0.5;
 			for (int i = 0; i < 50 - path_size; i++){
 				next_x_vals.push_back(pos_x+(dist_inc)*cos(angle+(i+1)*(pi()/100)));
 				next_y_vals.push_back(pos_y+(dist_inc)*sin(angle+(i+1)*(pi()/100)));
