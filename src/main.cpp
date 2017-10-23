@@ -200,7 +200,17 @@ int main() {
   	map_waypoints_dy.push_back(d_y);
   }
 
-  h.onMessage([&map_waypoints_x,&map_waypoints_y,&map_waypoints_s,&map_waypoints_dx,&map_waypoints_dy](uWS::WebSocket<uWS::SERVER> ws, char *data, size_t length,
+  //||||||||||||||||||||||||||||
+  //| 0 | 1 | 2 ||| 2 | 1 | 0 |
+  //||||||||||||||||||||||||||||
+  // Starting on Right Side, Lane 1 (Middle Lane)
+  int lane = 1;
+  
+  // Reference Velocity | mph
+  // double ref_vel = 49.5; 
+  double ref_vel = 0.0; 
+
+  h.onMessage([&lane, &ref_vel, &map_waypoints_x,&map_waypoints_y,&map_waypoints_s,&map_waypoints_dx,&map_waypoints_dy](uWS::WebSocket<uWS::SERVER> ws, char *data, size_t length,
                      uWS::OpCode opCode) {
     // "42" at the start of the message means there's a websocket message event.
     // The 4 signifies a websocket message
@@ -208,16 +218,6 @@ int main() {
     //auto sdata = string(data).substr(0, length);
 	//cout << sdata << endl;
 
-	//||||||||||||||||||||||||||||
-	//| 0 | 1 | 2 ||| 2 | 1 | 0 |
-	//||||||||||||||||||||||||||||
-	// Starting on Right Side, Lane 1 (Middle Lane)
-	int lane = 1;
-
-	// Reference Velocity | mph
-	double ref_vel = 49.5; 
-	
-	
     if (length && length > 2 && data[0] == '4' && data[1] == '2') {
 
       auto s = hasData(data);
@@ -273,11 +273,20 @@ int main() {
 					check_car_s += ((double)prev_size * .02 * check_speed);
 					if ((check_car_s > car_s) && (check_car_s - car_s) < 30) {
 						// if in front of us and gap is smaller than 30 meters
-						ref_vel = 29.5; // mph
+						// ref_vel = 29.5; // mph
+						too_close = true;
 
 						// change lanes maybe?
 					}
 				}
+			}
+
+			if (too_close) {
+				cout << "Decreasing Speed -- Possible Collision" << endl;
+				ref_vel -= .224; // 5 meters per second^2
+			} else if (ref_vel < 49.5) {
+				cout << "Increasing Speed" << endl;
+				ref_vel += .224; // 5 meters per second^2
 			}
 			// END: Sensor Fusion Logic
 
