@@ -163,6 +163,7 @@ vector<double> getXY(double s, double d, const vector<double> &maps_s, const vec
 
 }
 
+
 int main() {
   uWS::Hub h;
 
@@ -200,15 +201,15 @@ int main() {
   	map_waypoints_dy.push_back(d_y);
   }
 
-  //||||||||||||||||||||||||||||
-  //| 0 | 1 | 2 ||| 2 | 1 | 0 |
-  //||||||||||||||||||||||||||||
-  // Starting on Right Side, Lane 1 (Middle Lane)
-  int lane = 1;
-  
-  // Reference Velocity | mph
-  // double ref_vel = 49.5; 
-  double ref_vel = 0.0; 
+	//||||||||||||||||||||||||||||
+	//| 0 | 1 | 2 ||| 2 | 1 | 0 |
+	//||||||||||||||||||||||||||||
+	// Starting on Right Side, Lane 1 (Middle Lane)
+	int lane = 1;
+
+	// Reference Velocity | mph
+	// double ref_vel = 49.5; 
+	double ref_vel = 0.0;
 
   h.onMessage([&lane, &ref_vel, &map_waypoints_x,&map_waypoints_y,&map_waypoints_s,&map_waypoints_dx,&map_waypoints_dy](uWS::WebSocket<uWS::SERVER> ws, char *data, size_t length,
                      uWS::OpCode opCode) {
@@ -249,7 +250,6 @@ int main() {
 			// prev list of points can help when doing transition
 			int prev_size = previous_path_x.size();
 
-
 			// Sensor Fusion Logic - 41:38
 			vector<vector<double>> sensor_fusion = j[1]["sensor_fusion"];
 			car_s = prev_size > 0 ? end_path_s : car_s;
@@ -277,6 +277,9 @@ int main() {
 						too_close = true;
 
 						// change lanes maybe?
+						if (lane > 0) {
+							lane = 0;
+						}
 					}
 				}
 			}

@@ -20,3 +20,7 @@
  ##### Commit #6
  - Resolving Cold Start by using boolean and increasing/decreasing speed based on bool.
  - Resolved issue around `lane` and `ref_vel` declared outside of `h.onMessage`
+
+ At about 1 hr, they start taking questions:
+
+ Link to video: https://www.youtube.com/watch?v=7sI3VHFPP0w
