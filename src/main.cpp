@@ -36,7 +36,7 @@ string hasData(string s) {
 }
 
 // Euclidean distance between two points
-double distance(double x1, double y1, double x2, double y2)
+double distance(double x1, double y1, double x2, double y2) 
 {
 	return sqrt((x2-x1)*(x2-x1)+(y2-y1)*(y2-y1));
 }
@@ -250,11 +250,23 @@ int main() {
 			// prev list of points can help when doing transition
 			int prev_size = previous_path_x.size();
 
-			// Sensor Fusion Logic - 41:38
+			// Sensor Fusion - List of all other vehicles
 			vector<vector<double>> sensor_fusion = j[1]["sensor_fusion"];
-			car_s = prev_size > 0 ? end_path_s : car_s;
-			bool too_close = false;
+			if (prev_size > 0) {
+				car_s = end_path_s;
+			}
 
+			//// attempt1
+			//// end: attempt1
+			
+			//// attempt1
+			bool too_close = false;
+			bool left_change = true;
+			bool right_change = true;
+			bool cutoff = false;
+			//// end: attempt1
+
+			// Sensor Fusion Dance
 			// find rev_v to use
 			for (int i = 0; i < sensor_fusion.size(); i++) {
 				// car is in what lane?
@@ -263,35 +275,125 @@ int main() {
 				float d = sensor_fusion[i][6];
 
 				// If you are in my lane...
-				if (d < (2+4*lane+2) && d > (2+4*lane-2)) {
-					double vx = sensor_fusion[i][3];
-					double vy = sensor_fusion[i][4];
-					double check_speed = sqrt(vx*vx+vy*vy); // magnitude
-					double check_car_s = sensor_fusion[i][5]; // s value - know closeness
+				// if (d < (2+4*lane+2) && d > (2+4*lane-2)) {}
 
-					// if using previous points can project `s` value outwards in time
-					check_car_s += ((double)prev_size * .02 * check_speed);
-					if ((check_car_s > car_s) && (check_car_s - car_s) < 30) {
-						// if in front of us and gap is smaller than 30 meters
-						// ref_vel = 29.5; // mph
-						too_close = true;
+				double vx = sensor_fusion[i][3];
+				double vy = sensor_fusion[i][4];
+				double check_speed = sqrt(vx*vx+vy*vy); // magnitude
+				double check_car_s = sensor_fusion[i][5]; // s value - know closeness
 
-						// change lanes maybe?
-						if (lane > 0) {
-							lane = 0;
-						}
+				//// attempt1
+				double sensor_car_s = sensor_fusion[i][5];
+				double check_passing_s = check_car_s + (double)prev_size * .005 * check_speed;
+				double check_car_d = d + (double)prev_size * .005 * check_speed;
+				// if using previous points can project `s` value outwards in time
+				check_car_s += (double)prev_size * .02 * check_speed;
+					
+				int lane_left = 4 * (lane); // remember, yellow lines starts at 0
+				int lane_right = 4 * (lane + 1);
+				int two_lanes_left = 4 * (lane - 1);
+				int two_lanes_right = 4 * (lane + 2);
+
+				if ((car_s + 30 >= check_car_s) && (check_car_s > car_s)) {
+					if ((d < lane_right) && (d > lane_left)) {
+						std::cout << "Car is located w/in 30 meteres in front" << std::endl;
 					}
 				}
+
+				bool sensor_car_ahead = check_car_s > car_s;
+				bool car_close_ahead = car_s + 25 >= check_car_s;
+				bool car_close_behind = car_s - 20 <= sensor_car_s;
+
+				if (car_close_ahead && sensor_car_ahead) {
+					if ( (d < lane_right) && ( d > lane_left) && ( check_car_s > car_s) ) {
+						too_close = true;
+					}
+					if ( (d >= lane_right && d <= two_lanes_right) || lane == 2 ) {
+						right_change = false;
+					}
+					if ( (d >= two_lanes_left && d <= lane_left) || lane == 0 ) {
+						left_change = false;
+					}
+				}
+
+				if (( d >= lane_right && d <= two_lanes_right && car_close_behind && car_s > check_car_s ) || lane == 2 ) {
+					std::cout << "car close behind to right: " << std::flush;
+					std::cout << car_d << std::flush;
+					std::cout << " : " << std::flush;
+					std::cout << d << std::flush;
+					std::cout << " : " << std::flush;
+					std::cout << car_s << std::flush;
+					std::cout << " : " << std::flush;
+					std::cout << check_car_s << std::endl;
+					right_change = false;
+				}
+
+				if (( d >= two_lanes_left && d <= lane_left && car_close_behind && car_s > check_car_s ) || lane == 0 ) {
+					std::cout << "car close behind to left" << std::endl;
+					std::cout << car_d << std::flush;
+					std::cout << " : " << std::flush;
+					std::cout << d << std::flush;
+					std::cout << " : " << std::flush;
+					std::cout << car_s << std::flush;
+					std::cout << " : " << std::flush;
+					std::cout << check_car_s << std::endl;
+					left_change = false;
+				}
+
+				if (( (check_passing_s - (car_s + (double)prev_size * .005 * car_speed)) < 5 ) && ( abs(car_d - check_car_d) <= .25 )) {
+					if ( check_car_d > 0 && check_car_d < 12 && !(check_car_d < (2 + 4 * lane + 2) && check_car_d > ( 2 + 4 * lane - 2))) {
+						cutoff = true;
+						right_change = false;
+						left_change = false;
+					}
+				}
+				//// end: attempt1
+
+				// if using previous points can project `s` value outwards in time
+				// check_car_s += ((double)prev_size * .02 * check_speed);
+				// if ((check_car_s > car_s) && (check_car_s - car_s) < 30) {
+					// if in front of us and gap is smaller than 30 meters
+					// ref_vel = 29.5; // mph
+					// too_close = true;
+
+					// change lanes maybe?
+					// if (lane > 0) {
+						// lane = 0;
+					// }
+				// }
+			}
+			// END: Sensor Fusion Dance
+
+			// Lane Dance
+			bool lane_change = ( left_change | right_change );
+			// if we need to change lanes to the left
+			// left changes always take precedence over right lane changes for safety purposes
+			if (left_change && too_close && ref_vel > 30.0) {
+				lane = ( (lane > 0) ? (lane - 1) : 0 );
+				too_close = false;
+			} 
+			// if we need to change lanes to the right
+			else if (right_change && too_close && ref_vel > 30.0) {
+				lane = ( (lane > 2) ? (lane + 1) : 2 );
+				too_close = false;
 			}
 
+			// if we can't make a lange change even though we need to, we need to slow down
 			if (too_close) {
 				cout << "Decreasing Speed -- Possible Collision" << endl;
 				ref_vel -= .224; // 5 meters per second^2
-			} else if (ref_vel < 49.5) {
+			}
+			// if the car next to us is drifting over, or if we're drifting over, slow down faster
+			else if (cutoff && !lane_change) {
+				std::cout << "I was CUTOFF!" << std::endl;
+				ref_vel -= .224 * 3;
+			}
+			// if we don't need to change lanes and we aren't going the speed limit, speed up 
+			else if (ref_vel < 49.5) {
 				cout << "Increasing Speed" << endl;
 				ref_vel += .224; // 5 meters per second^2
 			}
-			// END: Sensor Fusion Logic
+			// END: Lane Dance
 
 
 			// list of widely spaced (x,y) waypoints, evenly spaced at 30m
@@ -388,7 +490,7 @@ int main() {
 
 			// Calculate how to break up spline points so 
 			// that we travel at our desired reference velocity
-			double target_x = 30.0;
+			double target_x = 50.0; // 30.0
 			double target_y = s(target_x);
 			double target_dist = sqrt((target_x)*(target_x) + (target_y)*(target_y));
 
